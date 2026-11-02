@@ -248,8 +248,13 @@ type Spec struct {
 	API string
 	// Echo renders the CLI equivalent for API-backed views (dql is the
 	// composed Query output, "" when Query is nil). DQL views echo
-	// `dtctl query` automatically and leave this nil.
+	// `dtctl query` automatically; one may set Echo to name a dedicated dtctl
+	// command for some scopes, returning "" to keep the query echo.
 	Echo func(s Scope, dql string) string
+	// Decode rewrites the fetched records before they are shown (nil = none):
+	// Live Debugger snapshots arrive as protobuf payloads and are decoded
+	// into readable variables and a stack here.
+	Decode func(records []map[string]any) []map[string]any
 	// Dynamic derives the column set from the fetched records (the record
 	// sampler browses arbitrary tables); Columns is the empty-result
 	// fallback.
@@ -523,7 +528,7 @@ var specs = []*Spec{
 	podsSpec, containersSpec, workloadsSpec, namespacesSpec, nodesSpec, clustersSpec, fleetSpec, modulesSpec, agentLogsSpec,
 	awsSpec, azureSpec, entitiesSpec, resourcesSpec,
 	frontendsSpec, databasesSpec, genaiSpec, vulnsSpec, attacksSpec, metricsSpec,
-	sessionsSpec, userEventsSpec, bizeventsSpec,
+	sessionsSpec, userEventsSpec, bizeventsSpec, breakpointsSpec, snapshotsSpec,
 	patternsSpec, slosSpec, detectorsSpec, dashboardsSpec,
 	syntheticSpec, executionsSpec,
 	dictionarySpec,

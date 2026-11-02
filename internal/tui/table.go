@@ -470,8 +470,10 @@ func (v *tableView) setFilter(f string) {
 }
 
 func (v *tableView) Echo() string {
-	if v.spec.API != "" && v.spec.Echo != nil {
-		return v.spec.Echo(v.scope, v.dql)
+	if v.spec.Echo != nil {
+		if echo := v.spec.Echo(v.scope, v.dql); echo != "" || v.spec.API != "" {
+			return echo
+		}
 	}
 	if v.dql == "" {
 		return ""
@@ -651,6 +653,9 @@ func (v *tableView) Update(msg tea.Msg) tea.Cmd {
 		v.err = msg.err
 		if msg.err == nil {
 			v.all = msg.records
+			if v.spec.Decode != nil {
+				v.all = v.spec.Decode(v.all)
+			}
 			// Stamp any warm derived fields (e.g. resolved Azure subscription
 			// names) in place — no-op when a cache is cold or no row matches; the
 			// derivedOwner broadcast re-enriches once a lookup lands.
