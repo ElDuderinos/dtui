@@ -28,8 +28,8 @@ var breakpointsSpec = &Spec{
 			fmt.Fprintf(&b, "\n| filter %s", f)
 		}
 		b.WriteString("\n| summarize {hits = count(), last_hit = max(timestamp), " +
-			"code.filepath = takeAny(code.filepath), code.line.number = takeAny(code.line.number), " +
-			"code.function = takeAny(code.function), hosts = countDistinct(host.name)}, by:{breakpoint.id}")
+			"`code.filepath` = takeAny(code.filepath), `code.line.number` = takeAny(code.line.number), " +
+			"`code.function` = takeAny(code.function), hosts = countDistinct(host.name)}, by:{breakpoint.id}")
 		b.WriteString("\n| fieldsAdd breakpoint.id = toString(breakpoint.id)")
 		b.WriteString("\n| sort last_hit desc\n| limit 500")
 		return b.String()
@@ -46,7 +46,10 @@ var breakpointsSpec = &Spec{
 	},
 	EnterTarget: "snapshots",
 	EnterArg:    func(rec map[string]any) string { return Str(rec, "breakpoint.id") },
-	Drills:      map[string]string{},
+	// A breakpoint's hits must be the same population the row counted: the
+	// pinned entity and any search/facet narrowing carry into the snapshots.
+	EnterInheritsScope: true,
+	Drills:             map[string]string{},
 }
 
 var snapshotsSpec = &Spec{

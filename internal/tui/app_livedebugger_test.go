@@ -58,3 +58,42 @@ func TestSnapshotsBareEchoesQuery(t *testing.T) {
 		t.Errorf("echo = %q", got)
 	}
 }
+
+// TestBreakpointEnterKeepsScope: a breakpoint's hits are the population its
+// row counted — the entity scope and server narrowing carry into snapshots,
+// and once narrowed, c echoes the composed query rather than get snapshots.
+func TestBreakpointEnterKeepsScope(t *testing.T) {
+	a := testApp(t, "breakpoints")
+	bp := a.top().(*tableView)
+	host := &catalog.Entity{ID: "HOST-0001", Type: "HOST", Name: "host-a"}
+	bp.scope.Entity = host
+	bp.facets = []catalog.Facet{{Field: "thread.name", Value: "worker-1"}}
+	seedRows(t, a, []map[string]any{{"breakpoint.id": "bp-0001", "code.filepath": "A.java"}})
+	press(a, key("enter"))
+	tv, ok := a.top().(*tableView)
+	if !ok || tv.spec.Name != "snapshots" || tv.scope.Arg != "bp-0001" {
+		t.Fatalf("enter on a breakpoint → %s", a.top().Crumb())
+	}
+	if tv.scope.Entity == nil || tv.scope.Entity.ID != "HOST-0001" {
+		t.Errorf("entity scope dropped: %+v", tv.scope.Entity)
+	}
+	if len(tv.facets) != 1 || tv.facets[0].Value != "worker-1" {
+		t.Errorf("facets dropped: %+v", tv.facets)
+	}
+	if got := tv.Echo(); !strings.HasPrefix(got, "dtctl query 'fetch application.snapshots") {
+		t.Errorf("narrowed echo = %q", got)
+	}
+}
+
+// TestSnapshotsSearchFallsBackToQueryEcho: a server search on a breakpoint's
+// snapshots makes get snapshots broader than the list — echo the query.
+func TestSnapshotsSearchFallsBackToQueryEcho(t *testing.T) {
+	a := testApp(t, "breakpoints")
+	seedRows(t, a, []map[string]any{{"breakpoint.id": "bp-0001", "code.filepath": "A.java"}})
+	press(a, key("enter"))
+	tv := a.top().(*tableView)
+	tv.searches = []string{"timeout"}
+	if got := tv.Echo(); !strings.HasPrefix(got, "dtctl query ") {
+		t.Errorf("searched echo = %q", got)
+	}
+}

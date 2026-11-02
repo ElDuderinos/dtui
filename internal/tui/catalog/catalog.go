@@ -283,6 +283,10 @@ type Spec struct {
 	// sentinel "waterfall" opens the trace waterfall for Trace(rec).
 	EnterTarget string
 	EnterArg    func(rec map[string]any) string
+	// EnterInheritsScope carries this view's entity scope and server-side
+	// narrowing (searches, facets) into the EnterTarget view, for targets that
+	// list the raw records behind an aggregated row.
+	EnterInheritsScope bool
 	// Trace extracts a row's trace id ("" = none): the 's' jump on log
 	// records and enter on trace rows.
 	Trace func(rec map[string]any) string

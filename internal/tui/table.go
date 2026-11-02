@@ -470,7 +470,11 @@ func (v *tableView) setFilter(f string) {
 }
 
 func (v *tableView) Echo() string {
-	if v.spec.Echo != nil {
+	// A dedicated DQL-view command knows only the Scope; once searches,
+	// facets or segments narrow the list, only the composed query is
+	// equivalent to what is shown.
+	narrowed := v.spec.API == "" && len(v.searches)+len(v.facets)+len(v.ds.segments) > 0
+	if v.spec.Echo != nil && !narrowed {
 		if echo := v.spec.Echo(v.scope, v.dql); echo != "" || v.spec.API != "" {
 			return echo
 		}
@@ -876,7 +880,12 @@ func (v *tableView) handleKey(msg tea.KeyMsg) tea.Cmd {
 				} else if e := v.entityOf(rec); e != nil {
 					scope.Entity = e
 				}
-				return func() tea.Msg { return pushViewMsg{spec: target, scope: scope} }
+				msg := pushViewMsg{spec: target, scope: scope}
+				if v.spec.EnterInheritsScope {
+					msg.scope.Entity, msg.scope.Entities = v.scope.Entity, v.scope.Entities
+					msg.searches, msg.facets = v.searches, v.facets
+				}
+				return func() tea.Msg { return msg }
 			}
 		}
 		// Entity rows open the tabbed detail page; signal rows (logs,
